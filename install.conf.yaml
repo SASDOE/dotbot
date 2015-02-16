@@ -1,0 +1,3 @@
+    /etc/lightdm/lightdm.conf:
+      create: true
+      path: lightdm.conf

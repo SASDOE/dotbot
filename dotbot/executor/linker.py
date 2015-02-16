@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, errno, subprocess
 from . import Executor
 
 class Linker(Executor):
@@ -65,7 +65,11 @@ class Linker(Executor):
             try:
                 os.makedirs(parent)
             except OSError:
-                self._log.warning('Failed to create directory %s' % parent)
+                if OSError.errno == errno.EPERM:
+                    self._log.lowinfo('Creating directory as root')
+                    subprocess.call(['/usr/bin/sudo', '/usr/bin/mkdir', '-p', parent])
+                else:
+                    self._log.warning('Failed to create directory %s' % parent)
                 success = False
             else:
                 self._log.lowinfo('Creating directory %s' % parent)
@@ -104,6 +108,10 @@ class Linker(Executor):
         elif not self._exists(link_name) and self._exists(source):
             try:
                 os.symlink(source, os.path.expanduser(link_name))
+            except PermissionError:
+                self._log.lowinfo('Linking as root %s -> %s' % (link_name, source))
+                subprocess.call(['/usr/bin/sudo', '/usr/bin/ln', '-s', source, link_name])
+                success = True
             except OSError:
                 self._log.warning('Linking failed %s -> %s' % (link_name, source))
             else:
